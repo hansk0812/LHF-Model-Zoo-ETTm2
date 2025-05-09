@@ -10,7 +10,7 @@ from neuralforecast.core import NeuralForecast
 
 from neuralforecast.losses.numpy import mae, mse
 
-horizon = 336 # 24hrs = 4 * 15 min.
+horizon = 720 # 24hrs = 4 * 15 min.
 
 # Change this to your own data to try the model
 Y_df, _, _ = LongHorizon.load(directory='./', group='ETTm2')
@@ -53,9 +53,9 @@ plt.grid()
 # Use your own config or AutoNHITS.default_config
 nhits_config = {
        "learning_rate": tune.choice([0.001]),                                     # Initial Learning rate
-       "max_steps": tune.choice([600]),                                         # Number of SGD steps
+       "max_steps": tune.choice([1000]),                                         # Number of SGD steps
        "input_size": tune.choice([horizon]),                                 # input_size = multiplier * horizon
-       "batch_size": tune.choice([7]),                                           # Number of series in windows
+       "batch_size": tune.choice([3]),                                           # Number of series in windows
        "windows_batch_size": tune.choice([256]),                                 # Number of windows in batch
        "n_pool_kernel_size": tune.choice([[2, 2, 2]]), #, [16, 8, 1]              # MaxPool's Kernelsize
        "n_freq_downsample": tune.choice([[24, 12, 1]]), #, [1, 1, 1],[168, 24, 1],  # Interpolation expressivity ratios
@@ -122,3 +122,23 @@ with open('sota.csv', 'a') as f:
 print('MAE: ', mae(y_hat, y_true))
 print('MSE: ', mse(y_hat, y_true))
 
+import numpy as np
+from matplotlib import pyplot as plt 
+plt.rcParams["figure.figsize"] = 5,2
+        
+for s in [0]:
+    start=s
+    x = np.linspace(start,720,num=720-start)
+    y = np.mean((y_hat-y_true)**2, axis=(0,1))[start:]
+    
+    fig, (ax,ax2) = plt.subplots(nrows=2, sharex=True)
+
+    extent = [x[0]-(x[1]-x[0])/2., x[-1]+(x[1]-x[0])/2.,0,1]
+    ax.imshow(y[np.newaxis,:], cmap="inferno", aspect="auto", extent=extent)
+    ax.set_yticks([])
+    ax.set_xlim(extent[0], extent[1])
+
+    ax2.plot(x,y)
+
+    plt.tight_layout()
+    plt.savefig("%s_heatmap_720_M_start%d.png" % ("NHITS", s))
